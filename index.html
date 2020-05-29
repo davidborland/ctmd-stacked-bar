@@ -103,9 +103,9 @@
         .attr('x', d => d.x + pad / 2)
         .attr('width', d => xScale(d.values.length) - pad)
         .attr('height', yScale.bandwidth())
+        .attr('rx', radius)
+        .attr('ry', radius)
         .style('fill', d => colorScale(d.key))
-        .style('rx', radius)
-        .style('ry', radius)
         .on("mouseover", d => console.log(d));
 
     // Draw backgrounds
@@ -116,9 +116,9 @@
         .attr('y', d => yScale(d.key))
         .attr('width', d => xScale.range()[1])
         .attr('height', yScale.bandwidth())
-        .style('fill', "#eee")
-        .style('rx', radius)
-        .style('ry', radius);
+        .attr('rx', radius)
+        .attr('ry', radius)
+        .style('fill', "#eee");
 
     // Draw labels
     svg.select('.labels').selectAll('text')
