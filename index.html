@@ -25,14 +25,14 @@
         .key(d => d.proposalStatus)
         .entries(proposals);
 
+    statuses.sort((a, b) => d3.ascending(a.key, b.key))
+
+
     // Group by tic and then status
     const tics = d3.nest()
         .key(d => d.assignToInstitution)
         .key(d => d.proposalStatus)
         .entries(proposals);
-
-    console.log(statuses);
-    console.log(tics);
 
     // Color scale
     const colorScale = d3.scaleOrdinal()
@@ -46,60 +46,99 @@
         d3Module: d3,
     })
   */
-    const width = 400;
-    const height = 400;
-    const margin = { top: 10, right: 10, bottom: 10, left: 10 };
-    const innerWidht = width - margin.left - margin.right;
+    const width = 800;
+    const height = 200;
+    const margin = { top: 10, right: 10, bottom: 20, left: 110 };
+    const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
     const xScale = d3.scaleLinear()
-        .domain([0, d3.max(tics, d => d.values.length)])
+        .domain([0, d3.max(tics, d => d3.sum(d.values, d => d.values.length))])
         .range([0, innerWidth]);
     
-    const yScale = d3.scaleOrdinal()
+    const yScale = d3.scaleBand()
         .domain(tics.map(d => d.key))
-        .rangeBands([0, innerHeight]);
+        .rangeRound([0, innerHeight])
+        .paddingInner(0.4)
+        .paddingOuter(0.4);
+
+    // Set up for stacking
+    tics.forEach(d => {
+      let x = 0;
+
+      d.values.sort((a, b) => d3.ascending(a.key, b.key));
+
+      d.values.forEach(d => {
+        d.x = x;
+        x += xScale(d.values.length);
+      });
+    });
 
     //const svg = d3n.createSVG(svgWidth, svgHeight)
-    const g = d3.select('svg')
+    const svg = d3.select('svg')
         .attr('width', width)
-        .attr('height',  height)
-      .append('g')
+        .attr('height', height);
+
+    const g = svg.append('g')
         .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
     // Set up groups
+    g.append('g').attr('class', 'labels');
+    g.append('g').attr('class', 'backgrounds');
     g.append('g').attr('class', 'bars');
+    g.append('g').attr('class', 'axis');
 
     // Draw bars
-    const bar = g.select('.bars').selectAll('.bar')
-        .data(ticData)
-        .enter().append('rect')
+    const radius = 5;
+    const pad = 2;
+
+    svg.select('.bars').selectAll('.bar')
+        .data(tics)
+      .enter().append('g')
         .attr('class', 'bar')
-        .attr('x', d => x(d.name))
-        .attr('y', d => y(d.value))
-        .attr('width', barX)
-        .attr('height', d => y(0) - y(d.value))
+        .attr('transform', d => 'translate(0,' + yScale(d.key) + ')')
+      .selectAll('.section') 
+        .data(d => d.values)
+      .enter().append('rect')      
+        .attr('class', 'section')
+        .attr('x', d => d.x + pad / 2)
+        .attr('width', d => xScale(d.values.length) - pad)
+        .attr('height', yScale.bandwidth())
+        .style('fill', d => colorScale(d.key))
+        .style('rx', radius)
+        .style('ry', radius)
+        .on("mouseover", d => console.log(d));
 
-    const barLabels = bars.selectAll('text')
-        .data(ticData)
-        .enter().append('text')
-        .attr('class', 'text')
-        .attr('x', d => x(d.name))
-        .attr('y', d => y(d.value))
-        .attr("transform", `translate(${ barX/2 }, -10)`)
-        .style("text-anchor", "middle")
-        .text(d => d.value)
+    // Draw backgrounds
+    svg.select('.backgrounds').selectAll('rect')
+        .data(tics)
+      .enter().append('rect')      
+        .attr('class', 'section')
+        .attr('y', d => yScale(d.key))
+        .attr('width', d => xScale.range()[1])
+        .attr('height', yScale.bandwidth())
+        .style('fill', "#eee")
+        .style('rx', radius)
+        .style('ry', radius);
 
-    // add the x Axis
-    svg.append('g')
-        .attr("transform", `translate(50,${ height })`)
-        .call(d3.axisBottom(x))
+    // Draw labels
+    svg.select('.labels').selectAll('text')
+        .data(tics)
+      .enter().append('text')
+        .attr('dx', '-.5em')
+        .attr('y', d => yScale(d.key) + yScale.bandwidth() / 2)
+        .style('text-anchor', 'end')
+        .style('font-family', 'arial')
+        .style('font-size', 'small')
+        .style('dominant-baseline', 'middle')
+        .text(d => d.key);
 
-    // add the y Axis
-    svg.append('g')
-        .call(d3.axisLeft(y))
+    // Ddd the x Axis
+    svg.select('.axis')
+        .attr('transform', 'translate(0,' + innerHeight + ')')
+        .call(d3.axisBottom(xScale))
 
-    res.status(200).type('application/xml').send(d3n.svgString())
+    //res.status(200).type('application/xml').send(d3n.svgString())
   }
   catch (error) {
     console.log(error);
