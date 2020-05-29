@@ -27,7 +27,6 @@
 
     statuses.sort((a, b) => d3.ascending(a.key, b.key))
 
-
     // Group by tic and then status
     const tics = d3.nest()
         .key(d => d.assignToInstitution)
