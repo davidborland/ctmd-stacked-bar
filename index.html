@@ -20,22 +20,50 @@
 
     const proposals = response.data.filter(d => d.assignToInstitution);
 
-    // Group by status
-    const statuses = d3.nest()
-        .key(d => d.proposalStatus)
-        .entries(proposals);
-
-    statuses.sort((a, b) => d3.ascending(a.key, b.key))
-
     // Group by tic and then status
     const tics = d3.nest()
         .key(d => d.assignToInstitution)
         .key(d => d.proposalStatus)
         .entries(proposals);
 
+    // Threshold statuses
+    const threshold = 10;
+    const statuses = [];
+
+    tics.forEach(d => {
+      d.values.forEach(d => {
+        if (d.values.length > threshold) {
+          if (!statuses.includes(d.key)) {
+            statuses.push(d.key);
+          }
+        }
+      });
+    });
+
+    tics.forEach(d => {
+      const filteredValues = d.values.reduce((values, value) => {
+        if (statuses.includes(value.key)) {
+          values.push(value);
+        }
+        else {
+          values.find(d => d.key === "Other").values.push(value.value);
+        }
+
+        return values;
+      },[{ key: "Other", values: [] }]);
+
+      d.values = filteredValues;
+    });
+
+    tics.forEach(d => {
+      d.values.sort((a, b) => {
+        return a.key === "Other" ? 1 : b.key === "Other" ? -1 : d3.ascending(a.key, b.key);
+      });
+    });
+
     // Color scale
     const colorScale = d3.scaleOrdinal()
-        .domain(statuses.map(d => d.key))
+        .domain(statuses)
         .range(d3.schemeTableau10);
 
   /*
@@ -64,8 +92,6 @@
     // Set up for stacking
     tics.forEach(d => {
       let x = 0;
-
-      d.values.sort((a, b) => d3.ascending(a.key, b.key));
 
       d.values.forEach(d => {
         d.x = x;
@@ -105,7 +131,8 @@
         .attr('height', yScale.bandwidth())
         .attr('rx', radius)
         .attr('ry', radius)
-        .style('fill', d => colorScale(d.key));
+        .style('fill', d => d.key === "Other" ? "#999" : colorScale(d.key))
+        .on("mouseover", d => console.log(d));
 
     // Draw backgrounds
     svg.select('.backgrounds').selectAll('rect')
