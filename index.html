@@ -105,8 +105,7 @@
         .attr('height', yScale.bandwidth())
         .attr('rx', radius)
         .attr('ry', radius)
-        .style('fill', d => colorScale(d.key))
-        .on("mouseover", d => console.log(d));
+        .style('fill', d => colorScale(d.key));
 
     // Draw backgrounds
     svg.select('.backgrounds').selectAll('rect')
