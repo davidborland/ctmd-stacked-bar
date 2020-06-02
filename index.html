@@ -171,8 +171,7 @@ const colorScale = d3.scaleOrdinal()
         .attr('height', yScale.bandwidth())
         .attr('rx', radius)
         .attr('ry', radius)
-        .style('fill', d => colorScale(d.key))
-       // .style('stroke', d => d.key === "Other" ? '#eee' : null);
+        .style('fill', d => colorScale(d.key));
         //.on("mouseover", d => console.log(d));
 
     // Draw backgrounds    
